@@ -25,24 +25,101 @@ class ChessPiece {
   ChessPiece(this.type, this.allegience);
 }
 
+String getTextForChessPiece(ChessPiece piece) {
+  switch (piece.type) {
+    case ChessPieceType.bishop:
+      return '♝';
+    case ChessPieceType.cat:
+      return '   ';
+    case ChessPieceType.king:
+      return '♚';
+    case ChessPieceType.knight:
+      return '♞';
+    case ChessPieceType.pawn:
+      return '♟';
+    case ChessPieceType.queen:
+      return '♛';
+    case ChessPieceType.rook:
+      return '♜';
+  }
+}
+
 /// Data representation of a chess game.
 class ChessGame {
   ChessPlayer currentPlayerTurn = ChessPlayer.white;
   List<List<ChessPiece>> squares = [];
+  getStartingPieceForPosition(int x, int y) {
+    switch (y) {
+      case 0:
+        switch (x) {
+          case 0:
+          case 7:
+            return ChessPiece(ChessPieceType.rook, ChessPlayer.black);
+          case 1:
+          case 6:
+            return ChessPiece(ChessPieceType.knight, ChessPlayer.black);
+          case 2:
+          case 5:
+            return ChessPiece(ChessPieceType.bishop, ChessPlayer.black);
+          case 3:
+            return ChessPiece(ChessPieceType.queen, ChessPlayer.black);
+          case 4:
+            return ChessPiece(ChessPieceType.king, ChessPlayer.black);
+          default:
+            return ChessPiece(ChessPieceType.cat, ChessPlayer.cat);
+        }
+      case 1:
+        return ChessPiece(ChessPieceType.pawn, ChessPlayer.black);
+      case 6:
+        return ChessPiece(ChessPieceType.pawn, ChessPlayer.white);
+      case 7:
+        switch (x) {
+          case 0:
+          case 7:
+            return ChessPiece(ChessPieceType.rook, ChessPlayer.white);
+          case 1:
+          case 6:
+            return ChessPiece(ChessPieceType.knight, ChessPlayer.white);
+          case 2:
+          case 5:
+            return ChessPiece(ChessPieceType.bishop, ChessPlayer.white);
+          case 3:
+            return ChessPiece(ChessPieceType.queen, ChessPlayer.white);
+          case 4:
+            return ChessPiece(ChessPieceType.king, ChessPlayer.white);
+          default:
+            return ChessPiece(ChessPieceType.cat, ChessPlayer.cat);
+        }
+      default:
+        return ChessPiece(ChessPieceType.cat, ChessPlayer.cat);
+    }
+  }
+
   ChessGame() {
     currentPlayerTurn = ChessPlayer.white;
+    for (var x = 0; x < 8; x++) {
+      squares.add([]);
+      for (var y = 0; y < 8; y++) {
+        squares[x].add(getStartingPieceForPosition(x, y));
+      }
+    }
   }
 }
 
 /// Generates a visual representation of a chess board
 /// with click listeners that map events to a ChessGame object.
-DivElement generateGameBoard() {
+DivElement generateGameBoard(ChessGame game) {
   var baseElement = DivElement();
   baseElement.className = 'chess';
   for (var row = 1; row <= 8; row++) {
     for (var column = 1; column <= 8; column++) {
       var squareElement = DivElement();
-      squareElement.text = row.toString() + ',' + column.toString();
+      squareElement.text =
+          getTextForChessPiece(game.squares[column - 1][row - 1]);
+      squareElement.style.color =
+          game.squares[column - 1][row - 1].allegience == ChessPlayer.white
+              ? '#3D3'
+              : '#90D';
       squareElement.style.gridRow = row.toString();
       squareElement.style.gridColumn = column.toString();
       var colorationClass = row % 2 == 0
@@ -94,6 +171,6 @@ void main() {
   querySelector('#output')?.children.add(ButtonElement()
     ..setInnerHtml('Generate ChessBoard')
     ..onClick.listen((event) {
-      querySelector('#output')?.children = [generateGameBoard()];
+      querySelector('#output')?.children = [generateGameBoard(ChessGame())];
     }));
 }

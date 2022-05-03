@@ -22,17 +22,18 @@ html, body {
 }
 
 .chess-square {
-  width: 1fr;
+  width: 100px;
   height: 100px;
   margin: 0px;
   padding: 0;
   float: left;
+  font-size: 70px;
 }
 
 .black-square{
-  background-color: green;
+  background-color: #444;
 }
 
 .white-square {
-  background-color: greenyellow;
+  background-color: #111;
 }
