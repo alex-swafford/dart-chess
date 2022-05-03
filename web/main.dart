@@ -1,18 +1,5 @@
 import 'dart:html';
 
-Iterable<String> thingsTodo() sync* {
-  const actions = ['Walk', 'Wash', 'Feed'];
-  const pets = ['cats', 'dogs'];
-
-  for (final action in actions) {
-    for (final pet in pets) {
-      if (pet != 'cats' || action == 'Feed') {
-        yield '$action the $pet';
-      }
-    }
-  }
-}
-
 /// The players in chess.
 enum ChessPlayer { white, black, cat }
 
@@ -42,6 +29,12 @@ String getTextForChessPiece(ChessPiece piece) {
     case ChessPieceType.rook:
       return '♜';
   }
+}
+
+class Point {
+  int x;
+  int y;
+  Point(this.x, this.y);
 }
 
 /// Data representation of a chess game.
@@ -95,6 +88,26 @@ class ChessGame {
     }
   }
 
+  bool makeMove(Point start, Point end) {
+    if (start.x < 0 ||
+        start.x > 7 ||
+        start.y < 0 ||
+        start.y > 7 ||
+        end.x < 0 ||
+        end.x > 7 ||
+        end.y < 0 ||
+        end.y > 7) {
+      return false;
+    }
+    var pieceToMove = squares[start.x][start.y];
+    if (pieceToMove.allegience == ChessPlayer.cat) {
+      return false;
+    }
+    squares[end.x][end.y] = pieceToMove;
+    squares[start.x][start.y] = ChessPiece(ChessPieceType.cat, ChessPlayer.cat);
+    return true;
+  }
+
   ChessGame() {
     currentPlayerTurn = ChessPlayer.white;
     for (var x = 0; x < 8; x++) {
@@ -106,20 +119,53 @@ class ChessGame {
   }
 }
 
+class ChessGameGuiData {
+  Point selectedSquare = Point(-1, -1);
+  Point targetSquare = Point(-1, -1);
+
+  select(Point p) {
+    selectedSquare = p;
+  }
+
+  setTarget(Point p) {
+    targetSquare = p;
+  }
+
+  clear() {
+    selectedSquare.x = -1;
+    selectedSquare.y = -1;
+    targetSquare.x = -1;
+    targetSquare.y = -1;
+  }
+}
+
+void updateGameBoardGui(ChessGame game, DivElement baseElement) {
+  for (var squareElement in baseElement.children) {
+    var column = int.tryParse(squareElement.style.gridColumn.split(' ')[0]);
+    var row = int.tryParse(squareElement.style.gridRow.split(' ')[0]);
+    if (row == null || column == null) {
+      return;
+    }
+    squareElement.text =
+        getTextForChessPiece(game.squares[column - 1][row - 1]);
+    squareElement.style.color =
+        game.squares[column - 1][row - 1].allegience == ChessPlayer.white
+            ? '#3D3'
+            : game.squares[column - 1][row - 1].allegience == ChessPlayer.black
+                ? '#90D'
+                : '#FFF';
+  }
+}
+
 /// Generates a visual representation of a chess board
 /// with click listeners that map events to a ChessGame object.
 DivElement generateGameBoard(ChessGame game) {
+  var guiData = ChessGameGuiData();
   var baseElement = DivElement();
   baseElement.className = 'chess';
   for (var row = 1; row <= 8; row++) {
     for (var column = 1; column <= 8; column++) {
       var squareElement = DivElement();
-      squareElement.text =
-          getTextForChessPiece(game.squares[column - 1][row - 1]);
-      squareElement.style.color =
-          game.squares[column - 1][row - 1].allegience == ChessPlayer.white
-              ? '#3D3'
-              : '#90D';
       squareElement.style.gridRow = row.toString();
       squareElement.style.gridColumn = column.toString();
       var colorationClass = row % 2 == 0
@@ -131,6 +177,23 @@ DivElement generateGameBoard(ChessGame game) {
               : 'white-square';
       squareElement.className = 'chess-square ' + colorationClass;
       squareElement.onClick.listen((event) {
+        if (guiData.selectedSquare.x == -1) {
+          guiData.selectedSquare = Point(column - 1, row - 1);
+        } else {
+          guiData.targetSquare = Point(column - 1, row - 1);
+          game.makeMove(guiData.selectedSquare, guiData.targetSquare);
+          print('making move from [' +
+              guiData.selectedSquare.x.toString() +
+              ',' +
+              guiData.selectedSquare.y.toString() +
+              '] to [' +
+              guiData.targetSquare.x.toString() +
+              ',' +
+              guiData.targetSquare.y.toString() +
+              ']');
+          guiData.clear();
+          updateGameBoardGui(game, baseElement);
+        }
         print('clicked on square ' +
             squareElement.style.gridRow.split(' ')[0] +
             ',' +
@@ -139,6 +202,7 @@ DivElement generateGameBoard(ChessGame game) {
       baseElement.children.add(squareElement);
     }
   }
+  updateGameBoardGui(game, baseElement);
   return baseElement;
 }
 
