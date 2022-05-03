@@ -1,5 +1,7 @@
 import 'dart:html';
 
+import 'dart:math';
+
 /// The players in chess.
 enum ChessPlayer { white, black, cat }
 
@@ -10,6 +12,12 @@ class ChessPiece {
   ChessPlayer allegience;
   ChessPieceType type;
   ChessPiece(this.type, this.allegience);
+}
+
+class ChessMove {
+  Point start;
+  Point end;
+  ChessMove(this.start, this.end);
 }
 
 String getTextForChessPiece(ChessPiece piece) {
@@ -88,17 +96,150 @@ class ChessGame {
     }
   }
 
-  bool makeMove(Point start, Point end) {
-    if (start.x < 0 ||
-        start.x > 7 ||
-        start.y < 0 ||
-        start.y > 7 ||
-        end.x < 0 ||
-        end.x > 7 ||
-        end.y < 0 ||
-        end.y > 7) {
-      return false;
+  List<Point> getRookMoves(int x, int y, {int maxRange = 8}) {
+    if (x < 0 || x > 7 || y < 0 || y > 7) {
+      return [];
     }
+    List<Point> moves = [];
+    for (int xIter = x + 1; xIter < 8 && xIter - x < maxRange; xIter++) {
+      moves.add(Point(xIter, y));
+    }
+    for (int xIter = x - 1; xIter >= 0 && x - xIter < maxRange; xIter--) {
+      moves.add(Point(xIter, y));
+    }
+    for (int yIter = y + 1; yIter < 8 && yIter - y < maxRange; yIter++) {
+      moves.add(Point(x, yIter));
+    }
+    for (int yIter = y - 1; yIter >= 0 && y - yIter < maxRange; yIter--) {
+      moves.add(Point(x, yIter));
+    }
+    return moves;
+  }
+
+  List<Point> getKnightMoves(int x, int y) {
+    return [];
+  }
+
+  List<Point> getBishopMoves(int x, int y, {int maxRange = 8}) {
+    if (x < 0 || x > 7 || y < 0 || y > 7) {
+      return [];
+    }
+    List<Point> moves = [];
+    bool intersectedNE = false;
+    bool intersectedNW = false;
+    bool intersectedSE = false;
+    bool intersectedSW = false;
+    for (int dist = 1; dist < 8 && dist <= maxRange; dist++) {
+      if (x + dist < 8 && y + dist < 8 && !intersectedNE) {
+        moves.add(Point(x + dist, y + dist));
+        if (squares[x + dist][y + dist].type != ChessPieceType.cat) {
+          intersectedNE = true;
+        }
+      }
+      if (x + dist < 8 && y - dist >= 0 && !intersectedSE) {
+        moves.add(Point(x + dist, y - dist));
+        if (squares[x + dist][y - dist].type != ChessPieceType.cat) {
+          intersectedSE = true;
+        }
+      }
+      if (x - dist >= 0 && x + dist < 8 && !intersectedNW) {
+        moves.add(Point(x - dist, y + dist));
+        if (squares[x - dist][y + dist].type != ChessPieceType.cat) {
+          intersectedNW = true;
+        }
+      }
+      if (x - dist >= 0 && x + dist >= 0 && !intersectedSW) {
+        moves.add(Point(x - dist, y - dist));
+        if (squares[x + dist][y + dist].type != ChessPieceType.cat) {
+          intersectedSW = true;
+        }
+      }
+    }
+    return moves;
+  }
+
+  List<Point> getPawnMoves(int x, int y) {
+    List<Point> moves = [];
+    var pieceToMove = squares[x][y];
+    switch (pieceToMove.allegience) {
+      case ChessPlayer.cat:
+        break;
+      case ChessPlayer.white:
+        if (y <= 0) {
+          break;
+        }
+        if (squares[x][y - 1].type == ChessPieceType.cat) {
+          moves.add(Point(x, y - 1));
+        }
+        if (x >= 1 && squares[x - 1][y - 1].allegience == ChessPlayer.black) {
+          moves.add(Point(x - 1, y - 1));
+        }
+        if (x <= 6 && squares[x + 1][y - 1].allegience == ChessPlayer.black) {
+          moves.add(Point(x + 1, y - 1));
+        }
+        break;
+      case ChessPlayer.black:
+        if (y >= 7) {
+          break;
+        }
+        if (squares[x][y + 1].type == ChessPieceType.cat) {
+          moves.add(Point(x, y - 1));
+        }
+        if (x >= 1 && squares[x - 1][y + 1].allegience == ChessPlayer.black) {
+          moves.add(Point(x - 1, y + 1));
+        }
+        if (x <= 6 && squares[x + 1][y - 1].allegience == ChessPlayer.black) {
+          moves.add(Point(x + 1, y + 1));
+        }
+        break;
+    }
+    return moves;
+  }
+
+  List<Point> getValidMoves(Point pointToMoveFrom) {
+    if (pointToMoveFrom.x < 0 ||
+        pointToMoveFrom.x > 7 ||
+        pointToMoveFrom.y < 0 ||
+        pointToMoveFrom.y > 7 ||
+        pointToMoveFrom.x < 0 ||
+        pointToMoveFrom.x > 7 ||
+        pointToMoveFrom.y < 0 ||
+        pointToMoveFrom.y > 7) {
+      return [];
+    }
+    var x = pointToMoveFrom.x;
+    var y = pointToMoveFrom.y;
+
+    var pieceToMove = squares[x][y];
+    List<Point> possibleDestinations = [];
+    switch (pieceToMove.type) {
+      case ChessPieceType.king:
+        possibleDestinations.addAll(getBishopMoves(x, y, maxRange: 1));
+        possibleDestinations.addAll(getRookMoves(x, y, maxRange: 1));
+        break;
+      case ChessPieceType.queen:
+        possibleDestinations.addAll(getBishopMoves(x, y));
+        possibleDestinations.addAll(getRookMoves(x, y));
+        break;
+      case ChessPieceType.bishop:
+        possibleDestinations.addAll(getBishopMoves(x, y));
+        break;
+      case ChessPieceType.rook:
+        possibleDestinations.addAll(getRookMoves(x, y));
+        break;
+      case ChessPieceType.knight:
+        possibleDestinations.addAll(getKnightMoves(x, y));
+        break;
+      case ChessPieceType.pawn:
+        possibleDestinations.addAll(getPawnMoves(x, y));
+        break;
+      case ChessPieceType.cat:
+        return [];
+    }
+    return possibleDestinations;
+  }
+
+  bool makeMove(Point start, Point end) {
     var pieceToMove = squares[start.x][start.y];
     if (pieceToMove.allegience == ChessPlayer.cat) {
       return false;
