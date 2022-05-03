@@ -200,17 +200,18 @@ class ChessGame {
     if (pointToMoveFrom.x < 0 ||
         pointToMoveFrom.x > 7 ||
         pointToMoveFrom.y < 0 ||
-        pointToMoveFrom.y > 7 ||
-        pointToMoveFrom.x < 0 ||
-        pointToMoveFrom.x > 7 ||
-        pointToMoveFrom.y < 0 ||
         pointToMoveFrom.y > 7) {
+      print('cant move from ' +
+          pointToMoveFrom.x.toString() +
+          ' ' +
+          pointToMoveFrom.y.toString());
       return [];
     }
     var x = pointToMoveFrom.x;
     var y = pointToMoveFrom.y;
 
     var pieceToMove = squares[x][y];
+    print(pieceToMove.toString());
     List<Point> possibleDestinations = [];
     switch (pieceToMove.type) {
       case ChessPieceType.king:
@@ -236,6 +237,7 @@ class ChessGame {
       case ChessPieceType.cat:
         return [];
     }
+    print(possibleDestinations);
     return possibleDestinations;
   }
 
@@ -280,7 +282,8 @@ class ChessGameGuiData {
   }
 }
 
-void updateGameBoardGui(ChessGame game, DivElement baseElement) {
+void updateGameBoardGui(
+    ChessGame game, DivElement baseElement, ChessGameGuiData selection) {
   for (var squareElement in baseElement.children) {
     var column = int.tryParse(squareElement.style.gridColumn.split(' ')[0]);
     var row = int.tryParse(squareElement.style.gridRow.split(' ')[0]);
@@ -295,6 +298,22 @@ void updateGameBoardGui(ChessGame game, DivElement baseElement) {
             : game.squares[column - 1][row - 1].allegience == ChessPlayer.black
                 ? '#90D'
                 : '#FFF';
+    var possibleMoves = game.getValidMoves(selection.selectedSquare);
+    print('got moves');
+    print(possibleMoves.toString());
+    for (Point p in possibleMoves) {
+      for (var square in squareElement.children) {
+        var column = int.tryParse(squareElement.style.gridColumn.split(' ')[0]);
+        var row = int.tryParse(squareElement.style.gridRow.split(' ')[0]);
+        if (row != null &&
+            column != null &&
+            p.x == column - 1 &&
+            p.y == row - 1) {
+          //square.style.backgroundColor = '#FF0';
+          square.text = square.text ?? 'can haz';
+        }
+      }
+    }
   }
 }
 
@@ -333,7 +352,7 @@ DivElement generateGameBoard(ChessGame game) {
               guiData.targetSquare.y.toString() +
               ']');
           guiData.clear();
-          updateGameBoardGui(game, baseElement);
+          updateGameBoardGui(game, baseElement, guiData);
         }
         print('clicked on square ' +
             squareElement.style.gridRow.split(' ')[0] +
@@ -343,7 +362,7 @@ DivElement generateGameBoard(ChessGame game) {
       baseElement.children.add(squareElement);
     }
   }
-  updateGameBoardGui(game, baseElement);
+  updateGameBoardGui(game, baseElement, guiData);
   return baseElement;
 }
 
